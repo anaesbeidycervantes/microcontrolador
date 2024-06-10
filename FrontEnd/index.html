@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+  <title>Mostrar Último Valor</title>
+  <style>
+    .container {
+      margin-top: 50px;
+    }
+    .canvas-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    canvas {
+      border: 1px solid #000;
+      width: 100%; /* Ajustar el canvas al ancho del contenedor */
+      height: auto; /* Ajustar la altura automáticamente */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="mb-4">Último Valor Recibido</h1>
+    <table class="table">
+      <thead class="thead-dark">
+        <tr>
+          <th scope="col">X</th>
+          <th scope="col">Y</th>
+          <th scope="col">Z</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-ultimo-valor">
+      </tbody>
+    </table>
+
+    <button class="btn btn-primary mb-4" onclick="actualizarUltimoValor()">Actualizar</button>
+
+    <!-- Contenedor del canvas centrado -->
+    <div class="canvas-container">
+      <canvas id="myCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- jQuery y Popper.js necesarios para Bootstrap -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@1.16.1/dist/umd/popper.min.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    async function obtenerUltimoValor() {
+      try {
+        const respuesta = await fetch('/api/valores');
+        if (!respuesta.ok) {
+          throw new Error('Network response was not ok ' + respuesta.statusText);
+        }
+        const datos = await respuesta.json();
+        actualizarTabla(datos);
+        dibujarCirculo(datos);
+      } catch (error) {
+        console.error('Error al obtener el último valor:', error);
+      }
+    }
+
+    function actualizarTabla(datos) {
+      const tabla = document.getElementById('tabla-ultimo-valor');
+      tabla.innerHTML = ''; // Limpiar la tabla antes de agregar el último valor
+
+      if (datos.length > 0) {
+        const ultimoValor = datos[datos.length - 1];
+
+        const fila = document.createElement('tr');
+
+        const celdaX = document.createElement('td');
+        celdaX.textContent = ultimoValor.x;
+        fila.appendChild(celdaX);
+
+        const celdaY = document.createElement('td');
+        celdaY.textContent = ultimoValor.y;
+        fila.appendChild(celdaY);
+
+        const celdaZ = document.createElement('td');
+        celdaZ.textContent = ultimoValor.z;
+        fila.appendChild(celdaZ);
+
+        tabla.appendChild(fila);
+      }
+    }
+
+    function dibujarCirculo(datos) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (datos.length > 0) {
+        const ultimoValor = datos[datos.length - 1];
+        const radio = Math.min(ultimoValor.z, 150); // Limitar el radio para no salirse del canvas
+        const x = mapearValor(ultimoValor.x / 2, 0, 150, radio, canvas.width - radio); // Mapear valor de X
+        const y = mapearValor(ultimoValor.y / 2, 0, 150, radio, canvas.height - radio); // Mapear valor de Y
+
+        ctx.beginPath();
+        ctx.arc(x, y, radio, 0, 2 * Math.PI);
+        ctx.fillStyle = 'red';
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    // Función para mapear un valor a otro rango
+    function mapearValor(valor, minEntrada, maxEntrada, minSalida, maxSalida) {
+      return minSalida + (maxSalida - minSalida) * ((valor - minEntrada) / (maxEntrada - minEntrada));
+    }
+
+    // Función para actualizar el último valor al hacer clic en el botón
+    function actualizarUltimoValor() {
+      obtenerUltimoValor();
+    }
+
+    // Obtener el último valor al cargar la página por primera vez
+    obtenerUltimoValor();
+  </script>
+</body>
+</html>
